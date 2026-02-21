@@ -4,6 +4,7 @@ Django settings for library_system project.
 
 from pathlib import Path
 import os
+import json
 from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials
@@ -31,9 +32,7 @@ if 'localhost' in _db_host or '127.0.0.1' in _db_host:
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-here-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
-
-DEBUG = False
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
     'evelia-umbrose-unmovingly.ngrok-free.dev', '.vercel.app', '.vercel.pub', '.railway.app', 'localhost', '127.0.0.1'
@@ -54,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Must be right after SecurityMiddleware
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -85,21 +85,30 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'library_system.wsgi.application'
 
-# Database (MySQL via Railway)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'railway'),
-        'USER': os.getenv('DB_USER', 'root'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'HmJtbgnUTrWRdfksUmvlwEKbkhKygomI'),
-        'HOST': os.getenv('DB_HOST', 'shortline.proxy.rlwy.net'),
-        'PORT': os.getenv('DB_PORT', '40877'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
+# Database
+# - Set USE_SQLITE=True in .env for local development (no Railway needed)
+# - Leave USE_SQLITE unset in production (Vercel) to use Railway MySQL
+if os.getenv('USE_SQLITE', 'False') == 'True':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
-print(f"DEBUG: settings.py loaded. DB_HOST={DATABASES['default']['HOST']} DB_NAME={DATABASES['default']['NAME']}")
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('DB_NAME', 'railway'),
+            'USER': os.getenv('DB_USER', 'root'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'HmJtbgnUTrWRdfksUmvlwEKbkhKygomI'),
+            'HOST': os.getenv('DB_HOST', 'shortline.proxy.rlwy.net'),
+            'PORT': os.getenv('DB_PORT', '40877'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+            },
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -124,18 +133,18 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
 # Media files (Database Storage)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Keep for fallback or static tools
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Keep for fallback or static tools
 
 STORAGES = {
     "default": {
         "BACKEND": "api.storage.DatabaseStorage",
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
@@ -147,23 +156,28 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024   # 30 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024   # 30 MB
 
 # CORS settings
+_frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+_extra_vercel_frontend = os.getenv('VERCEL_FRONTEND_URL', '')
+
 CORS_ALLOWED_ORIGINS = [
-    os.getenv('FRONTEND_URL', 'http://localhost:3000'),
+    _frontend_url,
     'http://127.0.0.1:3000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    "https://evelia-umbrose-unmovingly.ngrok-free.dev",
-]
+    'https://evelia-umbrose-unmovingly.ngrok-free.dev',
+] + ([_extra_vercel_frontend] if _extra_vercel_frontend else [])
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = True  # Keep True for easy development; restrict in final production
 
 CSRF_TRUSTED_ORIGINS = [
+    _frontend_url,
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    "https://evelia-umbrose-unmovingly.ngrok-free.dev",
-]
+    'https://evelia-umbrose-unmovingly.ngrok-free.dev',
+    'https://*.vercel.app',
+] + ([_extra_vercel_frontend] if _extra_vercel_frontend else [])
 
 # Allow iframe embedding
 X_FRAME_OPTIONS = 'ALLOWALL'
@@ -183,30 +197,44 @@ REST_FRAMEWORK = {
 }
 
 # Firebase Admin SDK initialization
+# Supports three modes:
+#   1. FIREBASE_CREDENTIALS_JSON  env var — JSON string (Vercel/production)
+#   2. FIREBASE_CREDENTIALS_PATH  env var — path to .json file (local override)
+#   3. Auto-detect firebase-credentials.json in backend/ or project root (local dev)
 try:
-    # Check for credentials in backend dir or project root
-    default_creds_path = os.path.join(BASE_DIR, 'firebase-credentials.json')
-    parent_creds_path = os.path.join(BASE_DIR.parent, 'firebase-credentials.json')
-    
-    firebase_creds_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
-    
-    if not firebase_creds_path:
-        if os.path.exists(default_creds_path):
-            firebase_creds_path = default_creds_path
-        elif os.path.exists(parent_creds_path):
-            firebase_creds_path = parent_creds_path
-        else:
-            firebase_creds_path = default_creds_path # Fallback for printing warning
+    if not firebase_admin._apps:
+        firebase_cred = None
 
-    if not firebase_admin._apps:  # Check if not already initialized
-        if os.path.exists(firebase_creds_path):
-            cred = credentials.Certificate(firebase_creds_path)
-            firebase_admin.initialize_app(cred, {
-                'storageBucket': 'library-system.appspot.com'
+        # Mode 1: Inline JSON string (preferred for Vercel)
+        firebase_json_str = os.getenv('FIREBASE_CREDENTIALS_JSON')
+        if firebase_json_str:
+            firebase_cred_dict = json.loads(firebase_json_str)
+            firebase_cred = credentials.Certificate(firebase_cred_dict)
+            print("Firebase Admin SDK: using FIREBASE_CREDENTIALS_JSON env var")
+
+        # Mode 2 & 3: File path
+        if not firebase_cred:
+            default_creds_path = os.path.join(BASE_DIR, 'firebase-credentials.json')
+            parent_creds_path = os.path.join(BASE_DIR.parent, 'firebase-credentials.json')
+            firebase_creds_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+
+            if not firebase_creds_path:
+                if os.path.exists(default_creds_path):
+                    firebase_creds_path = default_creds_path
+                elif os.path.exists(parent_creds_path):
+                    firebase_creds_path = parent_creds_path
+
+            if firebase_creds_path and os.path.exists(firebase_creds_path):
+                firebase_cred = credentials.Certificate(firebase_creds_path)
+                print(f"Firebase Admin SDK: using file {firebase_creds_path}")
+            else:
+                print("Warning: Firebase credentials not found — authentication will not work")
+
+        if firebase_cred:
+            firebase_admin.initialize_app(firebase_cred, {
+                'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET', 'library-system.appspot.com')
             })
-            print(f"Firebase Admin SDK initialized successfully with {firebase_creds_path}")
-        else:
-            print(f"Warning: Firebase credentials not found at {firebase_creds_path}")
+            print("Firebase Admin SDK initialized successfully")
     else:
         print("Firebase Admin SDK already initialized")
 except Exception as e:
@@ -223,6 +251,8 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@digitallibrary.com
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@digitallibrary.com')
 
 # Celery Configuration
+# NOTE: Celery is NOT used on Vercel (serverless). These settings are for
+# local development or if you run a separate worker on Railway/Render.
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
