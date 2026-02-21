@@ -27,3 +27,8 @@ dist-ssr
 .env
 .env.local
 .env.production
+
+firebase-credentials.json
+frontend/firebase-credentials.json
+*.json
+.env
