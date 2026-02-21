@@ -12,7 +12,7 @@
     "routes": [
         {
             "src": "/static/(.*)",
-            "dest": "api/admin.py"
+            "dest":"/static/$1"
         },
         {
             "src": "/(.*)",
