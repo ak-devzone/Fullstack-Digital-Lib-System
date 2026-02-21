@@ -1,0 +1,230 @@
+"""
+Django settings for library_system project.
+"""
+
+from pathlib import Path
+import os
+from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables
+load_dotenv(BASE_DIR / '.env')
+
+# Monkeypatch to support MariaDB 10.4 (XAMPP default) with Django 5+
+# Only applied when running against local XAMPP (not Railway)
+import os as _os
+_db_host = _os.getenv('DB_HOST', 'shortline.proxy.rlwy.net')
+if 'localhost' in _db_host or '127.0.0.1' in _db_host:
+    try:
+        from django.db.backends.mysql.base import DatabaseWrapper
+        DatabaseWrapper.check_database_version_supported = lambda self: None
+        from django.db.backends.mysql.features import DatabaseFeatures
+        DatabaseFeatures.can_return_columns_from_insert = False
+    except ImportError:
+        pass
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-here-change-in-production')
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
+
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
+    'evelia-umbrose-unmovingly.ngrok-free.dev',
+]
+
+# Application definition
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'corsheaders',
+    'api',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'api.middleware.RemoveXFrameOptionsMiddleware',
+    'api.middleware.FirebaseAuthenticationMiddleware',
+]
+
+ROOT_URLCONF = 'library_system.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'library_system.wsgi.application'
+
+# Database (MySQL via Railway)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME', 'railway'),
+        'USER': os.getenv('DB_USER', 'root'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'HmJtbgnUTrWRdfksUmvlwEKbkhKygomI'),
+        'HOST': os.getenv('DB_HOST', 'shortline.proxy.rlwy.net'),
+        'PORT': os.getenv('DB_PORT', '40877'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
+    }
+}
+print(f"DEBUG: settings.py loaded. DB_HOST={DATABASES['default']['HOST']} DB_NAME={DATABASES['default']['NAME']}")
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+# Internationalization
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'Asia/Kolkata'
+USE_I18N = True
+USE_TZ = True
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
+# Media files (Database Storage)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Keep for fallback or static tools
+
+STORAGES = {
+    "default": {
+        "BACKEND": "api.storage.DatabaseStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# File upload size limits (must be > PDF limit of 25 MB for multipart form totals)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024   # 30 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024   # 30 MB
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    os.getenv('FRONTEND_URL', 'http://localhost:3000'),
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    "https://evelia-umbrose-unmovingly.ngrok-free.dev",
+]
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    "https://evelia-umbrose-unmovingly.ngrok-free.dev",
+]
+
+# Allow iframe embedding
+X_FRAME_OPTIONS = 'ALLOWALL'
+
+CORS_ALLOW_CREDENTIALS = True
+
+# REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+}
+
+# Firebase Admin SDK initialization
+try:
+    # Check for credentials in backend dir or project root
+    default_creds_path = os.path.join(BASE_DIR, 'firebase-credentials.json')
+    parent_creds_path = os.path.join(BASE_DIR.parent, 'firebase-credentials.json')
+    
+    firebase_creds_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+    
+    if not firebase_creds_path:
+        if os.path.exists(default_creds_path):
+            firebase_creds_path = default_creds_path
+        elif os.path.exists(parent_creds_path):
+            firebase_creds_path = parent_creds_path
+        else:
+            firebase_creds_path = default_creds_path # Fallback for printing warning
+
+    if not firebase_admin._apps:  # Check if not already initialized
+        if os.path.exists(firebase_creds_path):
+            cred = credentials.Certificate(firebase_creds_path)
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': 'library-system.appspot.com'
+            })
+            print(f"Firebase Admin SDK initialized successfully with {firebase_creds_path}")
+        else:
+            print(f"Warning: Firebase credentials not found at {firebase_creds_path}")
+    else:
+        print("Firebase Admin SDK already initialized")
+except Exception as e:
+    print(f"Error initializing Firebase Admin SDK: {e}")
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@digitallibrary.com')
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@digitallibrary.com')
+
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Kolkata'
+CELERY_ENABLE_UTC = False

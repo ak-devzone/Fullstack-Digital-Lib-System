@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9333ea"/>
+      <stop offset="50%" style="stop-color:#d946ef"/>
+      <stop offset="100%" style="stop-color:#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e9d5ff"/>
+      <stop offset="100%" style="stop-color:#a5f3fc"/>
+    </linearGradient>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#1a0045;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#03000e;stop-opacity:1"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="58" fill="url(#bg)" stroke="url(#g1)" stroke-width="1.5"/>
+
+  <!-- Inner glow ring -->
+  <circle cx="60" cy="60" r="50" fill="none" stroke="#9333ea" stroke-width="0.5" opacity="0.35"/>
+
+  <!-- Open book -->
+  <g filter="url(#glow)">
+    <!-- Left page -->
+    <path d="M30 42 Q30 38 35 36 L58 34 L58 82 L35 84 Q30 84 30 80 Z" fill="url(#g1)" opacity="0.95"/>
+    <!-- Right page -->
+    <path d="M90 42 Q90 38 85 36 L62 34 L62 82 L85 84 Q90 84 90 80 Z" fill="url(#g1)" opacity="0.82"/>
+    <!-- Spine -->
+    <rect x="57" y="34" width="6" height="48" fill="#7e22ce" rx="1"/>
+    <!-- Page lines left -->
+    <line x1="36" y1="46" x2="55" y2="46" stroke="url(#g2)" stroke-width="1.8" opacity="0.75"/>
+    <line x1="36" y1="53" x2="55" y2="53" stroke="url(#g2)" stroke-width="1.5" opacity="0.55"/>
+    <line x1="36" y1="60" x2="55" y2="60" stroke="url(#g2)" stroke-width="1.5" opacity="0.4"/>
+    <line x1="36" y1="67" x2="50" y2="67" stroke="url(#g2)" stroke-width="1.2" opacity="0.3"/>
+    <!-- Page lines right -->
+    <line x1="65" y1="46" x2="84" y2="46" stroke="url(#g2)" stroke-width="1.8" opacity="0.75"/>
+    <line x1="65" y1="53" x2="84" y2="53" stroke="url(#g2)" stroke-width="1.5" opacity="0.55"/>
+    <line x1="65" y1="60" x2="84" y2="60" stroke="url(#g2)" stroke-width="1.5" opacity="0.4"/>
+    <line x1="65" y1="67" x2="80" y2="67" stroke="url(#g2)" stroke-width="1.2" opacity="0.3"/>
+  </g>
+
+  <!-- Star accents -->
+  <circle cx="96" cy="31" r="3" fill="#22d3ee" opacity="0.95" filter="url(#glow)"/>
+  <circle cx="24" cy="37" r="2" fill="#d946ef" opacity="0.85" filter="url(#glow)"/>
+  <circle cx="91" cy="86" r="2.5" fill="#f472b6" opacity="0.8" filter="url(#glow)"/>
+  <circle cx="28" cy="82" r="1.8" fill="#9333ea" opacity="0.7" filter="url(#glow)"/>
+
+  <!-- Monogram -->
+  <text x="60" y="105" text-anchor="middle" fill="url(#g2)" font-family="'Inter', sans-serif" font-size="10.5" font-weight="800" letter-spacing="4" opacity="0.9">DIGLIB</text>
+</svg>
