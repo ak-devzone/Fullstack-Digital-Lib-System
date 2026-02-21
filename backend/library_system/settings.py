@@ -36,7 +36,7 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 DEBUG = False
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
-    'evelia-umbrose-unmovingly.ngrok-free.dev', '.vercel.app', '.vercel.pub',
+    'evelia-umbrose-unmovingly.ngrok-free.dev', '.vercel.app', '.vercel.pub', '.railway.app', 'localhost', '127.0.0.1'
 ]
 
 # Application definition
