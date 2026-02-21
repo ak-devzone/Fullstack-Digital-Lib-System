@@ -1,4 +1,0 @@
-{
-    "version": 2,
-    "comment": "This root vercel.json is NOT used for deployment. Deploy backend/ and frontend/ as SEPARATE Vercel projects. See DEPLOY.md for instructions."
-}
