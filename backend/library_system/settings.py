@@ -37,7 +37,7 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
     'evelia-umbrose-unmovingly.ngrok-free.dev', '.vercel.app', '.vercel.pub', '.railway.app', 'localhost', '127.0.0.1'
 ]
-
+ALLOWED_HOSTS = ['Avinashak.pythonanywhere.com']
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -135,6 +135,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Media files (Database Storage)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Keep for fallback or static tools
