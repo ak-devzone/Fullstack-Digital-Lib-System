@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../utils/firebase';
-import { DEPARTMENTS } from '../../utils/constants';
+import { DEPARTMENTS, API_URL } from '../../utils/constants';
 import {
     Box,
     Container,
@@ -87,7 +87,7 @@ const Register = () => {
 
             // 2. Register User via Backend API (Generates ID and creates profile)
             const token = await user.getIdToken();
-            const response = await fetch('http://localhost:8000/api/users/register/', {
+            const response = await fetch(`${API_URL}/users/register/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ const Register = () => {
 
                 // 3. Send welcome email via backend (Non-blocking)
                 try {
-                    const emailResponse = await fetch('http://localhost:8000/api/send-welcome-email/', {
+                    const emailResponse = await fetch(`${API_URL}/send-welcome-email/`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

@@ -39,7 +39,7 @@ export const BADGES = [
     }
 ];
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api' || "https://evelia-umbrose-unmovingly.ngrok-free.dev";
+export const API_URL = import.meta.env.VITE_API_URL || 'https://djangobackendapi.up.railway.app/api';
 
 // Admin registration secret key
 export const ADMIN_SECRET_KEY = 'LIBRARY_ADMIN_2008';

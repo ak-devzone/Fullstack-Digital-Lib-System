@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Container, Typography, Button, Grid } from '@mui/material';
+import { API_URL } from '../../utils/constants';
 
 /* ── Google Fonts ── */
 if (!document.getElementById('lp-font')) {
@@ -211,8 +212,8 @@ const BookCard = ({ book, index, navigate }) => {
                 height: 200, position: 'relative', overflow: 'hidden',
                 background: `linear-gradient(135deg, ${c}33, ${c}11)`
             }}>
-                {book.cover_image
-                    ? <img src={book.cover_image} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform .6s ease', transform: hov ? 'scale(1.08)' : 'scale(1)' }} />
+                {book.cover_image || book.coverImageUrl
+                    ? <img src={ensureHttps(book.cover_image || book.coverImageUrl)} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform .6s ease', transform: hov ? 'scale(1.08)' : 'scale(1)' }} />
                     : <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '60px' }}>📖</Box>
                 }
                 {book.is_premium && (
@@ -248,6 +249,16 @@ const LandingPage = () => {
     const [scrolled, setScrolled] = useState(false);
     const [scrollY, setScrollY] = useState(0);
 
+    // Helper to ensure URLs use HTTPS in production
+    const ensureHttps = (url) => {
+        if (!url) return url;
+        if (typeof url !== 'string') return url;
+        if (url.startsWith('http://djangobackendapi.up.railway.app')) {
+            return url.replace('http://', 'https://');
+        }
+        return url;
+    };
+
     const [statsRef, statsVis] = useScrollReveal(0.2);
     const [featRef, featVis] = useScrollReveal(0.1);
     const [booksRef, booksVis] = useScrollReveal(0.1);
@@ -263,12 +274,12 @@ const LandingPage = () => {
     useEffect(() => {
         (async () => {
             try {
-                let r = await fetch('http://localhost:8000/api/books/?featured=true');
+                let r = await fetch(`${API_URL}/books/?featured=true`);
                 if (r.ok) {
                     const d = await r.json();
                     let list = d.books || d.results || [];
                     if (!list.length) {
-                        r = await fetch('http://localhost:8000/api/books/');
+                        r = await fetch(`${API_URL}/books/`);
                         const d2 = await r.json();
                         list = (d2.books || d2.results || []).slice(0, 6);
                     }
@@ -403,7 +414,7 @@ const LandingPage = () => {
                         {/* Left text */}
                         <Grid item xs={12} md={6}>
                             {/* Badge */}
-                           {/* <Box sx={{
+                            {/* <Box sx={{
                                 display: 'inline-flex', alignItems: 'center', gap: 1,
                                 background: 'rgba(147,51,234,.12)', border: '1px solid rgba(147,51,234,.28)',
                                 borderRadius: '50px', px: 2.5, py: .8, mb: 4,

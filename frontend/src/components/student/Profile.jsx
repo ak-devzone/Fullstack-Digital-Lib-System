@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { API_URL } from '../../utils/constants';
 import {
     Container,
     Paper,
@@ -35,7 +36,7 @@ const Profile = () => {
         if (currentUser) {
             try {
                 const token = await currentUser.getIdToken();
-                const response = await fetch(`http://localhost:8000/api/admin/users/${currentUser.uid}/`, {
+                const response = await fetch(`${API_URL}/admin/users/${currentUser.uid}/`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -96,7 +97,7 @@ const Profile = () => {
             formData.append('file', file);
             formData.append('userId', userData.userId); // Ensure this matches what backend expects (Student ID)
 
-            const response = await fetch('http://localhost:8000/api/upload-id-proof/', {
+            const response = await fetch(`${API_URL}/upload-id-proof/`, {
                 method: 'POST',
                 body: formData
             });

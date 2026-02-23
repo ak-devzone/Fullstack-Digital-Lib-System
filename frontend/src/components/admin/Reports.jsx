@@ -29,6 +29,7 @@ import {
     People,
     Assessment
 } from '@mui/icons-material';
+import { API_URL } from '../../utils/constants';
 
 const Reports = () => {
     const { darkMode } = useOutletContext();
@@ -60,16 +61,16 @@ const Reports = () => {
             let endpoint = '';
             switch (activeTab) {
                 case 0: // Sales Report
-                    endpoint = `http://localhost:8000/api/analytics/revenue/?period=custom&start_date=${startDate}&end_date=${endDate}`;
+                    endpoint = `${API_URL}/analytics/revenue/?period=custom&start_date=${startDate}&end_date=${endDate}`;
                     break;
                 case 1: // Inventory Report
-                    endpoint = 'http://localhost:8000/api/analytics/dashboard/';
+                    endpoint = `${API_URL}/analytics/dashboard/`;
                     break;
                 case 2: // User Report
-                    endpoint = 'http://localhost:8000/api/admin/users/analytics/';
+                    endpoint = `${API_URL}/admin/users/analytics/`;
                     break;
                 case 3: // Activity Report
-                    endpoint = 'http://localhost:8000/api/analytics/dashboard/';
+                    endpoint = `${API_URL}/analytics/dashboard/`;
                     break;
                 default:
                     break;

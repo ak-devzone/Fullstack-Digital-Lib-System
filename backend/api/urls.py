@@ -40,6 +40,7 @@ from .views_users import (
 from .views_admin import register_admin, get_admin_details
 from .views_files import serve_database_file
 
+
 urlpatterns = [
     # Health check
     path('health/', health_check, name='health'),

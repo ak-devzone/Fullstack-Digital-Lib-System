@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_URL } from '../../utils/constants';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -36,7 +37,18 @@ const BookReader = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { currentUser } = useAuth();
-    const { darkMode } = useTheme();
+    const { darkMode: userDarkMode } = useTheme();
+    // User wants book reader to ALWAYS be in dark mode
+    const darkMode = true;
+
+    // Helper to ensure URLs use HTTPS in production
+    const ensureHttps = (url) => {
+        if (!url) return url;
+        if (url.startsWith('http://djangobackendapi.up.railway.app')) {
+            return url.replace('http://', 'https://');
+        }
+        return url;
+    };
 
     const [loading, setLoading] = useState(true);
     const [hasAccess, setHasAccess] = useState(false);
@@ -83,7 +95,7 @@ const BookReader = () => {
             };
 
             // First, get book details
-            const bookResponse = await fetch(`http://localhost:8000/api/books/${id}/`, { headers });
+            const bookResponse = await fetch(`${API_URL}/books/${id}/`, { headers });
             if (!bookResponse.ok) {
                 const errData = await bookResponse.json().catch(() => ({}));
                 console.error("Book fetch failed:", bookResponse.status, errData);
@@ -93,7 +105,7 @@ const BookReader = () => {
             setBook(bookData.book);
 
             // Check access
-            const accessResponse = await fetch(`http://localhost:8000/api/books/${id}/access/`, { headers });
+            const accessResponse = await fetch(`${API_URL}/books/${id}/access/`, { headers });
 
             if (!accessResponse.ok) {
                 throw new Error('Failed to verify access');
@@ -408,7 +420,7 @@ const BookReader = () => {
                     }
                 }}>
                     <Document
-                        file={book?.pdfUrl}
+                        file={ensureHttps(book?.pdfUrl)}
                         onLoadSuccess={onDocumentLoadSuccess}
                         loading={
                             <Box sx={{ py: 8, textAlign: 'center' }}>

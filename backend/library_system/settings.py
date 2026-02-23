@@ -5,9 +5,15 @@ Django settings for library_system project.
 from pathlib import Path
 import os
 import json
+import tempfile
 from dotenv import load_dotenv
 import firebase_admin
 from firebase_admin import credentials
+import pymysql
+
+# Patch MySQL driver and fake version to satisfy Django 4.2+ requirement
+pymysql.version_info = (2, 2, 1, 'final', 0)
+pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,28 +21,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables
 load_dotenv(BASE_DIR / '.env')
 
-# Monkeypatch to support MariaDB 10.4 (XAMPP default) with Django 5+
-# Only applied when running against local XAMPP (not Railway)
-import os as _os
-_db_host = _os.getenv('DB_HOST', 'shortline.proxy.rlwy.net')
-if 'localhost' in _db_host or '127.0.0.1' in _db_host:
-    try:
-        from django.db.backends.mysql.base import DatabaseWrapper
-        DatabaseWrapper.check_database_version_supported = lambda self: None
-        from django.db.backends.mysql.features import DatabaseFeatures
-        DatabaseFeatures.can_return_columns_from_insert = False
-    except ImportError:
-        pass
+
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-your-secret-key-here-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') + [
     'evelia-umbrose-unmovingly.ngrok-free.dev', '.vercel.app', '.vercel.pub', '.railway.app', 'localhost', '127.0.0.1'
 ]
+
+# Configure Django to recognize HTTPS behind a proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 # Application definition
 INSTALLED_APPS = [
@@ -53,7 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Must be right after SecurityMiddleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files in production
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -85,30 +85,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'library_system.wsgi.application'
 
-# Database
-# - Set USE_SQLITE=True in .env for local development (no Railway needed)
-# - Leave USE_SQLITE unset in production (Vercel) to use Railway MySQL
-if os.getenv('USE_SQLITE', 'False') == 'True':
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# Database (MySQL via Railway)
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME', 'railway'),
+        'USER': os.getenv('DB_USER', 'root'),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME', 'railway'),
-            'USER': os.getenv('DB_USER', 'root'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'HmJtbgnUTrWRdfksUmvlwEKbkhKygomI'),
-            'HOST': os.getenv('DB_HOST', 'shortline.proxy.rlwy.net'),
-            'PORT': os.getenv('DB_PORT', '40877'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-            },
-        }
-    }
+}
+print(f"DEBUG: settings.py loaded. DB_HOST={DATABASES['default']['HOST']} DB_NAME={DATABASES['default']['NAME']}")
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -133,11 +124,11 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_build', 'static')
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Media files (Database Storage)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Keep for fallback or static tools
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media') # Keep for fallback or static tools
 
 STORAGES = {
     "default": {
@@ -156,28 +147,29 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024   # 30 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024   # 30 MB
 
 # CORS settings
-_frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-_extra_vercel_frontend = os.getenv('VERCEL_FRONTEND_URL', '')
-
 CORS_ALLOWED_ORIGINS = [
-    _frontend_url,
-    'http://127.0.0.1:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'https://evelia-umbrose-unmovingly.ngrok-free.dev',
-] + ([_extra_vercel_frontend] if _extra_vercel_frontend else [])
-
-CORS_ALLOW_ALL_ORIGINS = True  # Keep True for easy development; restrict in final production
-
-CSRF_TRUSTED_ORIGINS = [
-    _frontend_url,
+    os.getenv('FRONTEND_URL', 'https://library-systemm.web.app'),
+    'https://library-systemm.web.app',
+    'https://library-systemm.firebaseapp.com',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'https://evelia-umbrose-unmovingly.ngrok-free.dev',
-    'https://*.vercel.app',
-] + ([_extra_vercel_frontend] if _extra_vercel_frontend else [])
+    "https://evelia-umbrose-unmovingly.ngrok-free.dev",
+]
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    "https://evelia-umbrose-unmovingly.ngrok-free.dev",
+    'https://*.railway.app',
+    'https://*.up.railway.app',
+    'https://library-systemm.web.app',
+]
 
 # Allow iframe embedding
 X_FRAME_OPTIONS = 'ALLOWALL'
@@ -197,23 +189,19 @@ REST_FRAMEWORK = {
 }
 
 # Firebase Admin SDK initialization
-# Supports three modes:
-#   1. FIREBASE_CREDENTIALS_JSON  env var — JSON string (Vercel/production)
-#   2. FIREBASE_CREDENTIALS_PATH  env var — path to .json file (local override)
-#   3. Auto-detect firebase-credentials.json in backend/ or project root (local dev)
 try:
-    if not firebase_admin._apps:
-        firebase_cred = None
-
-        # Mode 1: Inline JSON string (preferred for Vercel)
-        firebase_json_str = os.getenv('FIREBASE_CREDENTIALS_JSON')
-        if firebase_json_str:
-            firebase_cred_dict = json.loads(firebase_json_str)
-            firebase_cred = credentials.Certificate(firebase_cred_dict)
-            print("Firebase Admin SDK: using FIREBASE_CREDENTIALS_JSON env var")
-
-        # Mode 2 & 3: File path
-        if not firebase_cred:
+    if not firebase_admin._apps:  # Check if not already initialized
+        # Priority 1: JSON string from environment variable (Railway deployment)
+        firebase_creds_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
+        if firebase_creds_json:
+            creds_dict = json.loads(firebase_creds_json)
+            cred = credentials.Certificate(creds_dict)
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET', 'library-system.appspot.com')
+            })
+            print("Firebase Admin SDK initialized from FIREBASE_CREDENTIALS_JSON env var")
+        else:
+            # Priority 2: File path (local development)
             default_creds_path = os.path.join(BASE_DIR, 'firebase-credentials.json')
             parent_creds_path = os.path.join(BASE_DIR.parent, 'firebase-credentials.json')
             firebase_creds_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
@@ -225,16 +213,13 @@ try:
                     firebase_creds_path = parent_creds_path
 
             if firebase_creds_path and os.path.exists(firebase_creds_path):
-                firebase_cred = credentials.Certificate(firebase_creds_path)
-                print(f"Firebase Admin SDK: using file {firebase_creds_path}")
+                cred = credentials.Certificate(firebase_creds_path)
+                firebase_admin.initialize_app(cred, {
+                    'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET', 'library-system.appspot.com')
+                })
+                print(f"Firebase Admin SDK initialized from file: {firebase_creds_path}")
             else:
-                print("Warning: Firebase credentials not found — authentication will not work")
-
-        if firebase_cred:
-            firebase_admin.initialize_app(firebase_cred, {
-                'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET', 'library-system.appspot.com')
-            })
-            print("Firebase Admin SDK initialized successfully")
+                print("Warning: Firebase credentials not found. Set FIREBASE_CREDENTIALS_JSON env var for production.")
     else:
         print("Firebase Admin SDK already initialized")
 except Exception as e:
@@ -244,15 +229,25 @@ except Exception as e:
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+# Use SSL for port 465, TLS for others (usually 587)
+if EMAIL_PORT == 465:
+    EMAIL_USE_TLS = False
+    EMAIL_USE_SSL = True
+else:
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@digitallibrary.com')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Digital Library <noreplydigitallibrarysystemm@gmail.com>')
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@digitallibrary.com')
 
+# Prevent infinite hangs on SMTP calls (10 seconds)
+EMAIL_TIMEOUT = 10
+
+# Tracking deployment version
+BUILD_VERSION = os.getenv('RAILWAY_GIT_COMMIT_SHA', 'local-dev')[:7]
+
 # Celery Configuration
-# NOTE: Celery is NOT used on Vercel (serverless). These settings are for
-# local development or if you run a separate worker on Railway/Render.
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']

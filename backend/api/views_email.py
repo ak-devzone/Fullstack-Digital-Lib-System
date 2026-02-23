@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 import logging
-from firebase_admin import auth, firestore
+from firebase_admin import auth
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,9 @@ Digital Library Team
         """
 
         # Send email
-        print("Sending mail now...")
+        print(f"DEBUG: Attempting to send email to {email} via {settings.EMAIL_HOST}:{settings.EMAIL_PORT}")
+        print(f"DEBUG: Using SSL: {settings.EMAIL_USE_SSL}, Using TLS: {settings.EMAIL_USE_TLS}")
+        
         send_mail(
             subject,
             message,
@@ -70,7 +72,12 @@ Digital Library Team
         import traceback
         traceback.print_exc()
         logger.error(f"Failed to send email: {e}")
-        return Response({'error': str(e)}, status=500)
+        return Response({
+            'error': str(e),
+            'type': 'EmailSendingError',
+            'detail': 'SMTP Timeout or Configuration Issue. Check Railway Environment Variables.',
+            'version': getattr(settings, 'BUILD_VERSION', 'local')
+        }, status=500)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -83,20 +90,14 @@ def send_password_reset_email(request):
         if not email:
             return Response({'error': 'Email is required'}, status=400)
 
-        # 1. Fetch User ID from Firestore
-        db = firestore.client()
-        users_ref = db.collection('users')
-        query = users_ref.where('email', '==', email).limit(1)
-        docs = query.get()
-
-        user_id = "User" # Fallback
-        
-        if docs:
-            user_data = docs[0].to_dict()
-            user_id = user_data.get('userId', 'User')
+        # 1. Fetch User Profile from MySQL
+        try:
+            from .models import UserProfile
+            user = UserProfile.objects.get(email=email)
+            user_id = user.student_id or "User"
             print(f"Found user {user_id} for email {email}")
-        else:
-            print(f"No user found in Firestore for email {email}")
+        except UserProfile.DoesNotExist:
+            print(f"No user found in MySQL for email {email}")
             return Response({
                 'error': 'This email is not registered with the Digital Library System.'
             }, status=404)
@@ -126,6 +127,9 @@ Digital Library Support Team
 
         # 4. Send Email
         print("Sending password reset mail now...")
+        print(f"DEBUG: Attempting to send email to {email} via {settings.EMAIL_HOST}:{settings.EMAIL_PORT}")
+        print(f"DEBUG: Using SSL: {settings.EMAIL_USE_SSL}, Using TLS: {settings.EMAIL_USE_TLS}")
+        
         send_mail(
             subject,
             message,
@@ -143,4 +147,9 @@ Digital Library Support Team
         import traceback
         traceback.print_exc()
         logger.error(f"Failed to send password reset email: {e}")
-        return Response({'error': str(e)}, status=500)
+        return Response({
+            'error': str(e),
+            'type': 'EmailSendingError',
+            'detail': 'SMTP Timeout or Configuration Issue. Check Railway Environment Variables.',
+            'version': getattr(settings, 'BUILD_VERSION', 'local')
+        }, status=500)

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../../utils/firebase';
+import { API_URL } from '../../utils/constants';
 import {
     Box,
     Container,
@@ -34,7 +35,7 @@ const ForgotPassword = () => {
             setLoading(true);
 
             // Call our custom backend instead of direct Firebase reset
-            const response = await fetch('http://localhost:8000/api/send-password-reset-email/', {
+            const response = await fetch(`${API_URL}/send-password-reset-email/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { db } from '../../utils/firebase';
-import { DEPARTMENTS, SEMESTERS, USER_ROLES } from '../../utils/constants';
+import { DEPARTMENTS, SEMESTERS, USER_ROLES, API_URL } from '../../utils/constants';
 import BookCard from './BookCard';
 import {
     Box,
@@ -62,13 +62,13 @@ const StudentDashboard = () => {
     useEffect(() => {
         const fetchFeaturedBooks = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/books/?featured=true');
+                const response = await fetch(`${API_URL}/books/?featured=true`);
                 if (response.ok) {
                     const data = await response.json();
 
                     // If no featured books, fetch latest 6 books
                     if (!data.books || data.books.length === 0) {
-                        const allBooksResponse = await fetch('http://localhost:8000/api/books/');
+                        const allBooksResponse = await fetch(`${API_URL}/books/`);
                         const allBooksData = await allBooksResponse.json();
                         setFeaturedBooks((allBooksData.books || []).slice(0, 4));
                     } else {
@@ -92,7 +92,7 @@ const StudentDashboard = () => {
             if (currentUser) {
                 try {
                     const token = await currentUser.getIdToken();
-                    const response = await fetch(`http://localhost:8000/api/admin/users/${currentUser.uid}/`, {
+                    const response = await fetch(`${API_URL}/admin/users/${currentUser.uid}/`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }

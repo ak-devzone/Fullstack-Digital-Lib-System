@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { DEPARTMENTS } from '../../utils/constants';
+import { DEPARTMENTS, API_URL } from '../../utils/constants';
 import {
     Box,
     Container,
@@ -30,7 +30,7 @@ const CompleteProfile = () => {
         const checkProfile = async () => {
             if (currentUser) {
                 try {
-                    const response = await fetch(`http://localhost:8000/api/admin/users/${currentUser.uid}/`, {
+                    const response = await fetch(`${API_URL}/admin/users/${currentUser.uid}/`, {
                         headers: {
                             'Authorization': `Bearer ${await currentUser.getIdToken()}`
                         }
@@ -88,7 +88,7 @@ const CompleteProfile = () => {
             submitData.append('department', formData.department);
             submitData.append('idProof', idProof);
 
-            const response = await fetch('http://localhost:8000/api/users/profile/complete/', {
+            const response = await fetch(`${API_URL}/users/profile/complete/`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

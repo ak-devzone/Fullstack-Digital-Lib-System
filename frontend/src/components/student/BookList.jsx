@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import BookCard from './BookCard';
 import BookDetails from './BookDetails';
+import { API_URL } from '../../utils/constants';
 import {
     Container,
     Typography,
@@ -43,7 +44,7 @@ const BookList = () => {
             if (department) params.append('department', department);
             if (semester) params.append('semester', semester);
 
-            const response = await fetch(`http://localhost:8000/api/books/?${params.toString()}`);
+            const response = await fetch(`${API_URL}/books/?${params.toString()}`);
             const data = await response.json();
             setBooks(data.books || []);
         } catch (error) {

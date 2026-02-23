@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { ADMIN_SECRET_KEY } from '../../utils/constants';
+import { ADMIN_SECRET_KEY, API_URL } from '../../utils/constants';
 import {
     Box,
     Container,
@@ -101,7 +101,7 @@ const AdminRegister = () => {
 
             // CREATE ADMIN IN MYSQL
             const token = await user.getIdToken();
-            const registerResponse = await fetch('http://localhost:8000/api/admin/register/', {
+            const registerResponse = await fetch(`${API_URL}/admin/register/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ const AdminRegister = () => {
 
             // Send welcome email
             try {
-                await fetch('http://localhost:8000/api/send-admin-welcome/', {
+                await fetch(`${API_URL}/send-admin-welcome/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

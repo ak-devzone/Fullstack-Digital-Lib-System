@@ -39,7 +39,7 @@ import {
     Search,
     FilterList
 } from '@mui/icons-material';
-import { DEPARTMENTS } from '../../utils/constants';
+import { DEPARTMENTS, API_URL } from '../../utils/constants';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -65,9 +65,9 @@ const AdminDashboard = () => {
     const fetchAnalytics = async () => {
         try {
             // 1. Fetch User Analytics from Backend
-            const userResponse = await fetch('http://localhost:8000/api/admin/users/analytics/');
+            const userResponse = await fetch(`${API_URL}/admin/users/analytics/`);
             const userData = await userResponse.json();
-            
+
             let userStats = {
                 totalUsers: 0,
                 activeUsers: 0,

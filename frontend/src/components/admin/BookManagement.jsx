@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { collection, getDocs, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../utils/firebase';
-import { DEPARTMENTS, SEMESTERS } from '../../utils/constants';
+import { DEPARTMENTS, SEMESTERS, API_URL } from '../../utils/constants';
 import {
     Box,
     Container,
@@ -108,7 +108,7 @@ const BookManagement = () => {
             const token = currentUser ? await currentUser.getIdToken() : null;
             const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-            const response = await fetch('http://localhost:8000/api/books/', { headers });
+            const response = await fetch(`${API_URL}/books/`, { headers });
             const data = await response.json();
             setBooks(data.books || []);
         } catch (error) {
@@ -200,7 +200,7 @@ const BookManagement = () => {
             const token = currentUser ? await currentUser.getIdToken() : null;
             const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-            const response = await fetch('http://localhost:8000/api/books/upload/', {
+            const response = await fetch(`${API_URL}/books/upload/`, {
                 method: 'POST',
                 headers,
                 body: uploadData,
@@ -241,7 +241,7 @@ const BookManagement = () => {
             setDeleting(true);
             const token = currentUser ? await currentUser.getIdToken() : null;
             const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            const response = await fetch(`http://localhost:8000/api/books/${deletingBook.id}/delete/`, {
+            const response = await fetch(`${API_URL}/books/${deletingBook.id}/delete/`, {
                 method: 'DELETE',
                 headers,
             });
@@ -290,7 +290,7 @@ const BookManagement = () => {
             Object.entries(editFormData).forEach(([k, v]) => fd.append(k, v));
             if (editCoverFile) fd.append('coverImage', editCoverFile);
             if (editPdfFile) fd.append('pdfFile', editPdfFile);
-            const response = await fetch(`http://localhost:8000/api/books/${editBook.id}/update/`, {
+            const response = await fetch(`${API_URL}/books/${editBook.id}/update/`, {
                 method: 'PUT',
                 headers,
                 body: fd,
@@ -974,7 +974,7 @@ const BookManagement = () => {
                                     : <><CloudUpload /><Typography variant="caption">{editCoverFile ? editCoverFile.name : 'Replace Cover Image (optional)'}</Typography></>}
                                 <input type="file" hidden accept="image/*" onChange={(e) => {
                                     const f = e.target.files[0];
-                                    if (f) { if (f.size > 2*1024*1024) { showSnackbar('Max 2MB for cover', 'error'); return; } setEditCoverFile(f); setEditCoverPreview(URL.createObjectURL(f)); }
+                                    if (f) { if (f.size > 2 * 1024 * 1024) { showSnackbar('Max 2MB for cover', 'error'); return; } setEditCoverFile(f); setEditCoverPreview(URL.createObjectURL(f)); }
                                 }} />
                             </Button>
                         </Grid>
@@ -985,7 +985,7 @@ const BookManagement = () => {
                                     : <><CloudUpload /><Typography variant="caption">Replace PDF (optional — Max 25MB)</Typography></>}
                                 <input type="file" hidden accept="application/pdf" onChange={(e) => {
                                     const f = e.target.files[0];
-                                    if (f) { if (f.size > 25*1024*1024) { showSnackbar('PDF max 25MB', 'error'); return; } setEditPdfFile(f); }
+                                    if (f) { if (f.size > 25 * 1024 * 1024) { showSnackbar('PDF max 25MB', 'error'); return; } setEditPdfFile(f); }
                                 }} />
                             </Button>
                         </Grid>

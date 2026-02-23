@@ -48,10 +48,13 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-width: 1200px;
+  overflow-x: auto;
 }
 
 #root {
   min-height: 100vh;
+  min-width: 1200px;
 }
 
 /* Scrollbar Styling */

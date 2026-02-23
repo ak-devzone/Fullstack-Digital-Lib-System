@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../utils/firebase';
+import { API_URL } from '../utils/constants';
 
 const AuthContext = createContext({});
 
@@ -22,7 +23,7 @@ export const AuthProvider = ({ children }) => {
         return stored ? new Date(stored) : null;
     });
 
-    const API_URL = 'http://localhost:8000/api';
+
 
     // Sign up with email and password
     const signup = async (email, password, userData) => {

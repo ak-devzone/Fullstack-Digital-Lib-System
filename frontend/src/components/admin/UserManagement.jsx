@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { DEPARTMENTS } from '../../utils/constants';
+import { DEPARTMENTS, API_URL } from '../../utils/constants';
 import {
     Box,
     Container,
@@ -98,7 +98,7 @@ const UserManagement = () => {
             if (idProofFilter !== 'all') params.append('id_proof_status', idProofFilter);
             if (searchQuery) params.append('search', searchQuery);
 
-            const response = await fetch(`http://localhost:8000/api/admin/users/?${params}`);
+            const response = await fetch(`${API_URL}/admin/users/?${params}`);
             const data = await response.json();
 
             if (data.success) {
@@ -114,7 +114,7 @@ const UserManagement = () => {
 
     const fetchAnalytics = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/admin/users/analytics/');
+            const response = await fetch(`${API_URL}/admin/users/analytics/`);
             const data = await response.json();
 
             if (data.success) {
@@ -127,7 +127,7 @@ const UserManagement = () => {
 
     const handleViewDetails = async (user) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/admin/users/${user.id}/`);
+            const response = await fetch(`${API_URL}/admin/users/${user.id}/`);
             const data = await response.json();
 
             if (data.success) {
@@ -148,7 +148,7 @@ const UserManagement = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/verify-id/`, {
+            const response = await fetch(`${API_URL}/admin/users/${userId}/verify-id/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ verified })
@@ -176,7 +176,7 @@ const UserManagement = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/api/admin/users/${selectedUser.id}/verify-id/`, {
+            const response = await fetch(`${API_URL}/admin/users/${selectedUser.id}/verify-id/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ verified: false, reason: rejectionReason })
@@ -201,7 +201,7 @@ const UserManagement = () => {
 
     const handleSuspendUser = async (userId, suspended) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/suspend/`, {
+            const response = await fetch(`${API_URL}/admin/users/${userId}/suspend/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ suspended })
@@ -226,7 +226,7 @@ const UserManagement = () => {
         setHistoryDialogOpen(true);
         setHistoryLoading(true);
         try {
-            const response = await fetch(`http://localhost:8000/api/admin/users/${user.id}/history/`);
+            const response = await fetch(`${API_URL}/admin/users/${user.id}/history/`);
             const data = await response.json();
 
             if (data.success) {
@@ -259,7 +259,7 @@ const UserManagement = () => {
         }
         try {
             setEditSaving(true);
-            const response = await fetch(`http://localhost:8000/api/admin/users/${selectedUser.id}/update/`, {
+            const response = await fetch(`${API_URL}/admin/users/${selectedUser.id}/update/`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(editFormData),

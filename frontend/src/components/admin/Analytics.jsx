@@ -27,6 +27,7 @@ import {
     Download,
     ShoppingCart
 } from '@mui/icons-material';
+import { API_URL } from '../../utils/constants';
 import {
     LineChart,
     Line,
@@ -72,7 +73,7 @@ const Analytics = () => {
             setLoading(true);
 
             // Fetch dashboard stats
-            const statsResponse = await fetch('http://localhost:8000/api/analytics/dashboard/');
+            const statsResponse = await fetch(`${API_URL}/analytics/dashboard/`);
             const statsData = await statsResponse.json();
 
             if (statsData.success) {
@@ -83,7 +84,7 @@ const Analytics = () => {
             }
 
             // Fetch revenue analytics
-            const revenueResponse = await fetch('http://localhost:8000/api/analytics/revenue/?period=30days');
+            const revenueResponse = await fetch(`${API_URL}/analytics/revenue/?period=30days`);
             const revenueData = await revenueResponse.json();
 
             if (revenueData.success) {
